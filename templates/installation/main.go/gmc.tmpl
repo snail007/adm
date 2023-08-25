@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 
-	_ "github.com/GoAdminGroup/go-admin/adapter/gin"                    // web framework adapter
+	_ "github.com/GoAdminGroup/go-admin/adapter/gmc"                    // web framework adapter
 	_ "github.com/GoAdminGroup/go-admin/modules/db/drivers/{{.DriverModule}}" // sql driver
 	_ "github.com/GoAdminGroup/themes/{{.ThemePath}}"                       // ui theme
 
@@ -48,7 +48,7 @@ func startServer() {
 	template.AddComp(chartjs.NewChart())
 	eng := engine.Default()
 	if err := eng.AddConfigFromYAML("./config.yml").
-		AddGenerators(models.Generators).
+		AddGenerators(tables.Generators).
 		Use(server); err != nil {
 		glog.Fatal(gerror.Stack(err))
 	}
