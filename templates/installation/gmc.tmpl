@@ -1,0 +1,119 @@
+{{define "project"}}
+package main
+
+import (
+	"io/ioutil"
+	"log"
+	"os"
+	"os/signal"
+
+	_ "github.com/GoAdminGroup/go-admin/adapter/gin"                    // web framework adapter
+	_ "github.com/GoAdminGroup/go-admin/modules/db/drivers/{{.DriverModule}}" // sql driver
+	_ "github.com/GoAdminGroup/themes/{{.ThemePath}}"                       // ui theme
+
+	"github.com/GoAdminGroup/go-admin/engine"
+	"github.com/GoAdminGroup/go-admin/template"
+	"github.com/GoAdminGroup/go-admin/template/chartjs"
+
+	//gmc
+	_ "github.com/snail007/gmc/using/web"
+	ghttpserver "github.com/snail007/gmc/http/server"
+    gconfig "github.com/snail007/gmc/module/config"
+    gctx "github.com/snail007/gmc/module/ctx"
+    gerror "github.com/snail007/gmc/module/error"
+    glog "github.com/snail007/gmc/module/log"
+    ghook "github.com/snail007/gmc/util/process/hook"
+
+	"{{.Module}}/pages"
+	"{{.Module}}/tables"
+	{{if ne .Orm ""}}"{{.Module}}/models"{{end}}
+)
+
+func main() {
+	startServer()
+}
+
+func startServer() {
+	cfg, err := gconfig.NewConfigBytes(gmcCfg)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	ctx := gctx.NewCtx()
+	ctx.SetConfig(cfg)
+	server := ghttpserver.NewHTTPServer(ctx)
+	server.SetBinBytes(map[string][]byte{"": []byte("")})
+	if e := server.Init(cfg); e != nil {
+		glog.Fatal(e)
+	}
+	template.AddComp(chartjs.NewChart())
+	eng := engine.Default()
+	if err := eng.AddConfigFromYAML("./config.yml").
+		AddGenerators(models.Generators).
+		Use(server); err != nil {
+		glog.Fatal(gerror.Stack(err))
+	}
+	eng.HTML("GET", "/admin", pages.GetDashBoard)
+	eng.HTMLFile("GET", "/admin/hello", "./html/hello.tmpl", map[string]interface{}{
+		"msg": "Hello world",
+	})
+	ghook.RegistShutdown(func() {
+		glog.Infof("closing database connection")
+		eng.SqliteConnection().Close()
+	})
+	if e := server.Start(); e != nil {
+		glog.Fatal(gerror.Stack(e))
+	}
+	ghook.WaitShutdown()
+}
+
+var gmcCfg = []byte(`
+############################################################
+# http server configuration
+############################################################
+# 1.support of tls and optional client auth.
+# 2.showerrorstack if on, when a panic error occurred
+# call stack and error message will display on the browser.
+############################################################
+[httpserver]
+listen=":{{.Port}}"
+tlsenable=false
+tlscert="conf/server.crt"
+tlskey="conf/server.key"
+tlsclientauth=false
+tlsclientsca="./conf/clintsca.crt"
+printroute=true
+showerrorstack=true
+
+############################################################
+# http server static files configuration
+############################################################
+# 1.dir is a local filesystem path.
+# 2.urlpath is static dir url path.
+############################################################
+[static]
+dir="uploads"
+urlpath="/uploads/"
+
+#############################################################
+# logging configuration
+#############################################################
+# async=true, you must call logger.WaitAsyncDone() before
+# shutdown.
+#############################################################
+[log]
+# level sets logging output level, it's a level number 1-7.
+# 1,2,3,4,5,6,7 => TRACE, DEBUG, INFO, WARN, ERROR, PANIC, NONE
+# 7 indicates no logging output.
+level=0
+# 0,1 => console, file
+output=[0]
+# only worked when output contains 1
+dir="./logs"
+# filename in logs dir.
+# available placeholders are:
+# %Y:Year 2020, %m:Month 10, %d:Day 10, %H:24Hours 21
+gmcweb="gmcweb_%Y%m%d.log"
+gzip=false
+async=false
+`)
+{{end}}
