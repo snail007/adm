@@ -85,7 +85,7 @@ func buildProject(cfgFile string) {
 	}
 	if p.Framework == "" {
 		p.Framework = singleSelect(getWord("choose framework"),
-			[]string{"gin", "beego", "buffalo", "fasthttp", "echo", "chi", "gf", "gorilla", "iris"}, "gin")
+			[]string{"gin", "beego", "buffalo", "fasthttp", "echo", "chi", "gf", "gorilla", "iris", "gmc"}, "gmc")
 	}
 	if p.Theme == "" {
 		p.Theme = singleSelect(getWord("choose a theme"), template2.DefaultThemeNames, "sword")
